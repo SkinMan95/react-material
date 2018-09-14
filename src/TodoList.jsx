@@ -16,19 +16,18 @@ export class TodoList extends React.Component {
 
         return (
             <table>
-                <thead>
+              <thead>
                 <tr>
-                    <th>Task</th>
-                    <th>Priority</th>
-                    <th>Due Date</th>
+                  <th>Task</th>
+                  <th>Priority</th>
+                  <th>Due Date</th>
                 </tr>
-                </thead>
-                <tbody>
+              </thead>
+              <tbody>
                 {todoList}
-                </tbody>
+              </tbody>
             </table>
         );
-
 
     }
 
