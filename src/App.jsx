@@ -6,45 +6,93 @@ import { Login } from './login/Login';
 import { TodoApp } from './TodoApp';
 import { BrowserRouter as Router, Link, Route } from 'react-router-dom';
 import { Redirect } from 'react-router-dom'
+import axios from 'axios';
 
 class App extends Component {
 
 	constructor(props) {
 		super(props);
 
-		localStorage.setItem('default_user', 'user');
-		localStorage.setItem('default_pass', 'password');
-		const logged = localStorage.getItem('isLoggedIn');
+		const token = localStorage.getItem('userToken');
 
-		this.state = { user: '', password: '', isLoggedIn: Object.is(logged, undefined) ? false : logged };
+		this.state = {
+			axiosInstance: null,
+			user: '',
+			password: '',
+			token: Object.is(token, undefined) ? '' : token,
+			isLoggedIn: typeof token === 'string' && token.length > 0
+		};
 
 		this.handleLogin = this.handleLogin.bind(this);
-		this.correctCredentials = this.correctCredentials.bind(this);
+		this.askForToken = this.askForToken.bind(this);
+		this.validateAndStoreToken = this.validateAndStoreToken.bind(this);
+		this.createAxiosInstance = this.createAxiosInstance.bind(this);
+		this.validToken = this.validToken.bind(this);
 	}
 
-	handleLogin() {
-		if (this.correctCredentials()) {
-			console.log('Correct credentials');
-			this.setState({ isLoggedIn: true });
-			localStorage.setItem('isLoggedIn', true);
-		} else {
-			console.log('Incorrect credentials');
-			this.setState({ isLoggedIn: false });
-			localStorage.setItem('isLoggedIn', false);
+	componentDidMount() {
+		if (this.validToken()) {
+			this.createAxiosInstance();
 		}
 	}
 
-	correctCredentials() {
-		let condition = this.state.user == localStorage.getItem('default_user');
-		condition = condition && this.state.password == localStorage.getItem('default_pass');
-
-		console.log('Actual', this.state.user, this.state.password);
-
-		return condition
+	validToken() {
+		const tok = this.state.token;
+		return typeof tok === 'string' && tok.length > 0;
 	}
 
-	isLoggedIn() {
-		return localStorage.getItem('isLoggedIn') == true;
+	createAxiosInstance() {
+		console.log('creating axios instance');
+
+		const axiosIns = axios.create({
+			baseURL: 'http://localhost:8080/api',
+			timeout: 1000,
+			headers: { 'authorization': 'Bearer ' + this.state.token }
+		});
+
+		this.setState({ axiosInstance: axiosIns });
+	}
+
+	askForToken() {
+		const _this = this;
+
+		axios.post('http://localhost:8080/user/login', {
+			username: this.state.user,
+			password: this.state.password
+		})
+			.then(function (response) {
+				console.log(response.data);
+				_this.validateAndStoreToken(response.data);
+			})
+			.catch(function (error) {
+				console.log(error);
+				_this.setState({ 
+					isLoggedIn: false,
+					axiosInstance: null 
+				});
+			});
+	}
+
+	validateAndStoreToken(tokenJson) {
+		console.log('validating token in json', tokenJson);
+		if (tokenJson !== undefined && tokenJson.hasOwnProperty('accessToken')) {
+			this.setState({ 
+				isLoggedIn: true,
+				token: tokenJson['accessToken']
+			 });
+			localStorage.setItem('userToken', tokenJson['accessToken']);
+			this.createAxiosInstance();
+		} else {
+			this.setState({ 
+				isLoggedIn: false,
+				axiosInstance: null 
+			});
+		}
+	}
+
+	handleLogin() {
+		this.askForToken();
+		console.log('Actual', this.state.user, this.state.password);
 	}
 
 	handleUserChange = (event) => {
@@ -71,6 +119,7 @@ class App extends Component {
 	TodoView = () => (
 		<TodoApp
 			isLoggedIn={this.state.isLoggedIn}
+			axios={this.state.axiosInstance}
 		/>
 	);
 
@@ -103,7 +152,7 @@ class App extends Component {
 					<br />
 
 					<ul>
-						{!this.state.isLoggedIn && <li><Link to="/">Login</Link></li>}
+						<li><Link to="/">Login</Link></li>
 						{this.state.isLoggedIn && <li><Link to="/todo">Todo</Link></li>}
 					</ul>
 

@@ -5,6 +5,7 @@ import { TodoList } from "./TodoList";
 import Button from '@material-ui/core/Button';
 import Input from '@material-ui/core/Input';
 import './TodoApp.css';
+import { Get } from 'react-axios';
 
 export class TodoApp extends React.Component {
 	constructor(props) {
@@ -14,6 +15,19 @@ export class TodoApp extends React.Component {
 		this.handlePriorityChange = this.handlePriorityChange.bind(this);
 		this.handleDateChange = this.handleDateChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
+		this.todoList = this.todoList.bind(this);
+	}
+
+
+
+	todoList() {
+		this.props.axios.get('/todo')
+			.then(function (response) {
+				console.log(response.data);
+			})
+			.catch(function (error) {
+				console.log(error);
+			});
 	}
 
 	render() {
@@ -34,7 +48,7 @@ export class TodoApp extends React.Component {
 
 							<label htmlFor="priority" className="right-margin">
 								Priority:
-                </label>
+                			</label>
 
 							<Input
 								id="priority"
@@ -58,7 +72,22 @@ export class TodoApp extends React.Component {
 						</form>
 						<br />
 						<br />
-						<TodoList todoList={this.state.items} />
+						{this.props.axios && <Get url="/todo" instance={this.props.axios}>
+							{(error, response, isLoading, onReload) => {
+								if (error) {
+									console.log(error);
+									return (<div>Something bad happened: {error.message} <button onClick={() => onReload({ params: { reload: true } })}>Retry</button></div>)
+								}
+								else if (isLoading) {
+									return (<div>Loading...</div>)
+								}
+								else if (response !== null) {
+									console.log(response.data);
+									return (<TodoList todoList={response.data}></TodoList>)
+								}
+								return (<div>Default message before request is made.</div>)
+							}}
+						</Get>}
 					</div>}
 			</div>
 		);
