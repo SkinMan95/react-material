@@ -38,7 +38,8 @@ class App extends Component {
 
 	validToken() {
 		const tok = this.state.token;
-		return typeof tok === 'string' && tok.length > 0;
+		console.log(tok);
+		return tok !== null && tok.length > 0;
 	}
 
 	createAxiosInstance() {

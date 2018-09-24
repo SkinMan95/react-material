@@ -6,31 +6,50 @@ import Button from '@material-ui/core/Button';
 import Input from '@material-ui/core/Input';
 import './TodoApp.css';
 import { Get } from 'react-axios';
+import axios from 'axios';
 
 export class TodoApp extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { items: [], text: '', priority: 0, dueDate: moment() };
+		this.state = { items: [], text: '', priority: 0, dueDate: moment(), gotItems: false };
 		this.handleTextChange = this.handleTextChange.bind(this);
 		this.handlePriorityChange = this.handlePriorityChange.bind(this);
 		this.handleDateChange = this.handleDateChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
-		this.todoList = this.todoList.bind(this);
+		this.askForItems = this.askForItems.bind(this);
 	}
 
+	componentDidMount() {
+		if(this.props.axios !== null) {
+			this.askForItems();
+		} else {
+			console.log(this.props.axios);
+		}
+	}
 
+	askForItems() {
+		const _this = this;
 
-	todoList() {
+		if(this.props.axios === null) return;
+
 		this.props.axios.get('/todo')
-			.then(function (response) {
-				console.log(response.data);
+			.then((response) => {
+				console.log(response);
+				_this.setState({
+					items: response.data,
+					gotItems: true
+				});
 			})
-			.catch(function (error) {
+			.catch((error) => {
 				console.log(error);
 			});
 	}
 
 	render() {
+		if (this.props.axios !== null && this.state.gotItems === false) {
+			this.askForItems();
+		}
+
 		return (
 			<div>
 				{this.props.isLoggedIn &&
@@ -60,34 +79,20 @@ export class TodoApp extends React.Component {
 							<br />
 
 							<DatePicker
+								dateFormat="YYYY-MM-DD"
 								id="due-date"
 								selected={this.state.dueDate}
 								placeholderText="Due date"
 								onChange={this.handleDateChange}>
 							</DatePicker>
 							<br />
-							<Button variant="outlined">
-								Add #{this.state.items.length + 1}
+							<Button variant="outlined" type="submit">
+								Add TODO
 							</Button>
 						</form>
 						<br />
 						<br />
-						{this.props.axios && <Get url="/todo" instance={this.props.axios}>
-							{(error, response, isLoading, onReload) => {
-								if (error) {
-									console.log(error);
-									return (<div>Something bad happened: {error.message} <button onClick={() => onReload({ params: { reload: true } })}>Retry</button></div>)
-								}
-								else if (isLoading) {
-									return (<div>Loading...</div>)
-								}
-								else if (response !== null) {
-									console.log(response.data);
-									return (<TodoList todoList={response.data}></TodoList>)
-								}
-								return (<div>Default message before request is made.</div>)
-							}}
-						</Get>}
+						<TodoList todoList={this.state.items}></TodoList>
 					</div>}
 			</div>
 		);
@@ -112,8 +117,11 @@ export class TodoApp extends React.Component {
 	}
 
 	handleSubmit(e) {
+		const _this = this;
 
 		e.preventDefault();
+		
+		console.log('dueDate:', this.state.dueDate.toISOString(), Object.getOwnPropertyNames(this.state.dueDate));
 
 		if (!this.state.text.length || !this.state.priority.length || !this.state.dueDate)
 			return;
@@ -121,14 +129,24 @@ export class TodoApp extends React.Component {
 		const newItem = {
 			text: this.state.text,
 			priority: this.state.priority,
-			dueDate: this.state.dueDate,
-
+			dueDate: this.state.dueDate.toISOString()
 		};
+
+		if (this.props.axios !== null) {
+			this.props.axios.post('/todo', newItem)
+				.then((response) => {
+					console.log('sucessfully added todo item');
+					_this.askForItems();
+				})
+				.catch((error) => {
+					console.log('Error adding todo item', error.message);
+				});
+		}
+
 		this.setState(prevState => ({
-			items: prevState.items.concat(newItem),
 			text: '',
 			priority: '',
-			dueDate: ''
+			dueDate: moment()
 		}));
 	}
 
