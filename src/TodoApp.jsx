@@ -5,18 +5,17 @@ import { TodoList } from "./TodoList";
 import Button from '@material-ui/core/Button';
 import Input from '@material-ui/core/Input';
 import './TodoApp.css';
-import { Get } from 'react-axios';
-import axios from 'axios';
 
 export class TodoApp extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { items: [], text: '', priority: 0, dueDate: moment(), gotItems: false };
+		this.state = { items: [], text: '', priority: 0, dueDate: moment(), gotItems: false, file: ''};
 		this.handleTextChange = this.handleTextChange.bind(this);
 		this.handlePriorityChange = this.handlePriorityChange.bind(this);
 		this.handleDateChange = this.handleDateChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
 		this.askForItems = this.askForItems.bind(this);
+		this.handleInputChange = this.handleInputChange.bind(this);
 	}
 
 	componentDidMount() {
@@ -34,9 +33,9 @@ export class TodoApp extends React.Component {
 
 		this.props.axios.get('/todo')
 			.then((response) => {
-				console.log(response);
+				console.log("Respuesta en 'askForItems'", response);
 				_this.setState({
-					items: response.data,
+					// items: response.data,
 					gotItems: true
 				});
 			})
@@ -85,6 +84,14 @@ export class TodoApp extends React.Component {
 								placeholderText="Due date"
 								onChange={this.handleDateChange}>
 							</DatePicker>
+
+							<input
+								id="file"
+								type="file"
+								onChange={this.handleInputChange}
+								>
+							</input>
+
 							<br />
 							<Button variant="outlined" type="submit">
 								Add TODO
@@ -116,10 +123,29 @@ export class TodoApp extends React.Component {
 		});
 	}
 
+	handleInputChange(e) {
+		this.setState({
+			file: e.target.files[0]
+		});                
+	}
+
 	handleSubmit(e) {
 		const _this = this;
 
 		e.preventDefault();
+
+		let data = new FormData();
+        data.append('file', this.state.file);
+
+		if (this.props.axios !== null) {
+        	this.props.axios.post('/files', data)
+        	    .then(function (response) {
+        	        console.log("file uploaded!", data);
+        		})
+        		.catch(function (error) {
+        		    console.log("failed file upload", error);
+				});
+		}
 		
 		console.log('dueDate:', this.state.dueDate.toISOString(), Object.getOwnPropertyNames(this.state.dueDate));
 
