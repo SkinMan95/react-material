@@ -35,7 +35,7 @@ export class TodoApp extends React.Component {
 			.then((response) => {
 				console.log("Respuesta en 'askForItems'", response);
 				_this.setState({
-					// items: response.data,
+					items: response.data,
 					gotItems: true
 				});
 			})
@@ -56,10 +56,10 @@ export class TodoApp extends React.Component {
 						<form onSubmit={this.handleSubmit} className="todo-form">
 							<h3>New TODO</h3>
 							<Input
-								id="text"
+								id="description"
 								onChange={this.handleTextChange}
 								value={this.state.text}
-								placeholder="Text">
+								placeholder="Description">
 							</Input>
 							<br />
 							<br />
@@ -85,12 +85,12 @@ export class TodoApp extends React.Component {
 								onChange={this.handleDateChange}>
 							</DatePicker>
 
-							<input
+							<Input
 								id="file"
 								type="file"
 								onChange={this.handleInputChange}
 								>
-							</input>
+							</Input>
 
 							<br />
 							<Button variant="outlined" type="submit">
@@ -124,6 +124,7 @@ export class TodoApp extends React.Component {
 	}
 
 	handleInputChange(e) {
+		console.log(e.target.files[0]);
 		this.setState({
 			file: e.target.files[0]
 		});                
@@ -134,13 +135,41 @@ export class TodoApp extends React.Component {
 
 		e.preventDefault();
 
+		const newItem = {
+			description: this.state.text,
+			priority: this.state.priority,
+			dueDate: this.state.dueDate.toISOString(),
+			fileUrl: "http://localhost:8080/api/files/" + this.state.file.name // TODO
+		};
+
+		const addTodoFunc = function() {
+			_this.props.axios.post('/todo', newItem)
+				.then((response) => {
+					console.log('sucessfully added todo item');
+					_this.askForItems();
+				})
+				.catch((error) => {
+					console.log('Error adding todo item', error.message);
+				});
+
+				if (!_this.state.text.length || !_this.state.priority.length || !_this.state.dueDate) return;
+
+				_this.setState(prevState => ({
+					text: '',
+					priority: '',
+					dueDate: moment(),
+					gotItems: false
+				}));
+		}
+
 		let data = new FormData();
-        data.append('file', this.state.file);
+		data.append('file', this.state.file);
 
 		if (this.props.axios !== null) {
         	this.props.axios.post('/files', data)
         	    .then(function (response) {
-        	        console.log("file uploaded!", data);
+					console.log("file uploaded!", data);
+					addTodoFunc();
         		})
         		.catch(function (error) {
         		    console.log("failed file upload", error);
@@ -149,31 +178,7 @@ export class TodoApp extends React.Component {
 		
 		console.log('dueDate:', this.state.dueDate.toISOString(), Object.getOwnPropertyNames(this.state.dueDate));
 
-		if (!this.state.text.length || !this.state.priority.length || !this.state.dueDate)
-			return;
-
-		const newItem = {
-			text: this.state.text,
-			priority: this.state.priority,
-			dueDate: this.state.dueDate.toISOString()
-		};
-
-		if (this.props.axios !== null) {
-			this.props.axios.post('/todo', newItem)
-				.then((response) => {
-					console.log('sucessfully added todo item');
-					_this.askForItems();
-				})
-				.catch((error) => {
-					console.log('Error adding todo item', error.message);
-				});
-		}
-
-		this.setState(prevState => ({
-			text: '',
-			priority: '',
-			dueDate: moment()
-		}));
+		
 	}
 
 }

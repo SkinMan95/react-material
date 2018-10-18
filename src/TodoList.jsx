@@ -6,7 +6,7 @@ export class TodoList extends React.Component {
         console.log("todoList es:", this.props.todoList);
         const todoList = this.props.todoList.map((todo, i) => {
             return (
-                <Todo key={i} text={todo.text} priority={todo.priority} dueDate={todo.duedate}/>
+                <Todo key={i} text={todo.description} priority={todo.priority} dueDate={todo.dueDate} fileUrl={todo.fileUrl}/>
             );
         });
 
@@ -14,6 +14,7 @@ export class TodoList extends React.Component {
             <table>
               <thead>
                 <tr>
+                  <th>Image</th>
                   <th>Task</th>
                   <th>Priority</th>
                   <th>Due Date</th>
